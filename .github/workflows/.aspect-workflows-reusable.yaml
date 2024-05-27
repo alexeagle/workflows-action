@@ -55,10 +55,6 @@ on:
         description: The name of the file which contains the delivery workflow
         type: string
         default: aspect-workflows-delivery.yaml
-      queue:
-        description: The queue / runner pool that the setup step will run on
-        type: string
-        default: aspect-default
       slack_webhook_url:
         description: 'If set, then a webhook notification will be sent for failing builds on a release branch. Input should match the name of a secret. "secrets: inherit" must also be set'
         type: string
@@ -68,18 +64,20 @@ on:
 
 jobs:
   setup:
-    runs-on: [self-hosted, aspect-workflows, "${{ inputs.queue }}"]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - id: rosetta-generate
-        run: |
-          ROSETTA_RESULT=$( \
-            rosetta steps \
-            --config ${{ inputs.aspect-config }} \
-            --gha_task generate \
-            --gha_json_pretty_print=false \
-          )
-          tee "${GITHUB_OUTPUT}" <<< "json=${ROSETTA_RESULT}"
+      - uses: alexeagle/workflows-action
+        id: rosetta-generate
+      # : rosetta-generate
+      #   run: |
+      #     ROSETTA_RESULT=$( \
+      #       rosetta steps \
+      #       --config ${{ inputs.aspect-config }} \
+      #       --gha_task generate \
+      #       --gha_json_pretty_print=false \
+      #     )
+      #     tee "${GITHUB_OUTPUT}" <<< "json=${ROSETTA_RESULT}"
 
     outputs:
       cfg: ${{ steps.rosetta-generate.outputs.json }}
