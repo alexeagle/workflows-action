@@ -20,14 +20,5 @@ inputs:
 
 runs:
   # Declare this is a "Composite Action"
-  using: "composite"
-
-  steps:
-    # Simple wrapper around running rosetta
-    - run: |
-        rosetta run \
-          --workspace ${{ inputs.workspace }} \
-          ${{ inputs.task }} \
-          ${{ inputs.args }}
-      shell: bash
-      id: rosetta-step
+  using: 'node20'
+  main: 'index.js'
