@@ -1,0 +1,21 @@
+name: Aspect Workflows
+
+on:
+    # Makes this workflow reusable, see
+    # https://github.blog/2022-02-10-using-reusable-workflows-github-actions
+    workflow_call:
+      inputs:
+        aspect-config:
+          description: Path to the Aspect Workflows config.yaml file
+          type: string
+          default: .aspect/workflows/config.yaml
+
+jobs:
+    bazel:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: alexeagle/workflows-action@a331d3a1327acbba132699787824f258c50100e7
+              with:
+                workspace: .
+                task: test

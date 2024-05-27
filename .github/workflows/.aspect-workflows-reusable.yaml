@@ -63,55 +63,38 @@ on:
         type: string
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: alexeagle/workflows-action
-        id: rosetta-generate
-      # : rosetta-generate
-      #   run: |
-      #     ROSETTA_RESULT=$( \
-      #       rosetta steps \
-      #       --config ${{ inputs.aspect-config }} \
-      #       --gha_task generate \
-      #       --gha_json_pretty_print=false \
-      #     )
-      #     tee "${GITHUB_OUTPUT}" <<< "json=${ROSETTA_RESULT}"
-
-    outputs:
-      cfg: ${{ steps.rosetta-generate.outputs.json }}
-
   bazel:
-    needs: [setup]
-    runs-on: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].labels }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.setup.outputs.cfg).matrix_config }}
+      matrix:
+        job:
+          - test
+          - format
     env:
       ASPECT_WORKFLOWS_CONFIG: ${{ inputs.aspect-config }}
 
     steps:
-      - name: Workflows environment
-        run: ${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/configure_workflows_env
+      # - name: Workflows environment
+      #   run: ${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/configure_workflows_env
 
       - name: Clone repo
         uses: actions/checkout@v4
 
-      - name: Agent health check
-        run: ${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/agent_health_check
-        timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].health_check_timeout }}
+      # - name: Agent health check
+      #   run: ${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/agent_health_check
+      #   timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].health_check_timeout }}
 
-      - name: Process secrets
-        id: process_secrets
-        if: inputs.inherited_secrets != ''
-        run: |
-          REQUIRED_SECRETS=$(${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/jq -R --compact-output 'gsub("\\s+";"";"g") | split(",")' <<< "${{ inputs.inherited_secrets }}")
-          FILTERED_SECRETS=$(${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/jq --compact-output --argjson secrets "${REQUIRED_SECRETS}" 'with_entries( select (.key | test($secrets[]) ) )' <<< '''${{ toJson(secrets) }}''' )
-          echo "filtered_secrets=${FILTERED_SECRETS}" | tee ${GITHUB_OUTPUT}
+      # - name: Process secrets
+      #   id: process_secrets
+      #   if: inputs.inherited_secrets != ''
+      #   run: |
+      #     REQUIRED_SECRETS=$(${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/jq -R --compact-output 'gsub("\\s+";"";"g") | split(",")' <<< "${{ inputs.inherited_secrets }}")
+      #     FILTERED_SECRETS=$(${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/jq --compact-output --argjson secrets "${REQUIRED_SECRETS}" 'with_entries( select (.key | test($secrets[]) ) )' <<< '''${{ toJson(secrets) }}''' )
+      #     echo "filtered_secrets=${FILTERED_SECRETS}" | tee ${GITHUB_OUTPUT}
 
-      - name: Prepare archive directories
-        run: rm -rf ${{ join(fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].artifact_paths, ' ') }}
+      # - name: Prepare archive directories
+      #   run: rm -rf ${{ join(fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].artifact_paths, ' ') }}
 
       - name: Determine changed files
         uses: tj-actions/changed-files@v42
@@ -119,7 +102,7 @@ jobs:
         with:
           json: true
           write_output_files: true
-          output_dir: ${{ fromJson(needs.setup.outputs.cfg).platform.directories.ARTIFACTS_DIR }}
+          output_dir: 'artifacts-dir' # ${{ fromJson(needs.setup.outputs.cfg).platform.directories.ARTIFACTS_DIR }}
 
       - name: Checkout health
         uses: aspect-build/workflows-action@5.10.0-rc0.dev.23.g9325ff1
@@ -150,14 +133,14 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets[inputs.slack_webhook_url] }}
 
-      - name: Delivery manifest
-        if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
-        uses: aspect-build/workflows-action@5.10.0-rc0.dev.23.g9325ff1
-        timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].delivery_manifest_timout }}
-        with:
-            workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
-            task: delivery_manifest
-            args: "--data TARGETS_SOURCE=${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}"
+      # - name: Delivery manifest
+      #   if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
+      #   uses: aspect-build/workflows-action@5.10.0-rc0.dev.23.g9325ff1
+      #   timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].delivery_manifest_timout }}
+      #   with:
+      #       workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
+      #       task: delivery_manifest
+      #       args: "--data TARGETS_SOURCE=${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}"
 
       # Upload all artifacts for the workspace
       - name: Upload artifacts
